@@ -27,10 +27,8 @@ def _make_loader(commands_path: str) -> type:
     the given path.  We reload onecli.py with the patched constant so we get
     an isolated class.
     """
-    if "onecli" in sys.modules:
-        del sys.modules["onecli"]
-
-    import onecli as onecli_mod  # noqa: PLC0415
+    onecli_mod = importlib.import_module("onecli")
+    onecli_mod = importlib.reload(onecli_mod)
 
     # Patch the module-level constant.
     onecli_mod.COMMANDS_DIR = commands_path
@@ -144,9 +142,8 @@ class TestCLIRunner:
     ):
         _patch_commands_pkg(monkeypatch, fake_commands_dir)
 
-        if "onecli" in sys.modules:
-            del sys.modules["onecli"]
-        import onecli as onecli_mod  # noqa: PLC0415
+        onecli_mod = importlib.import_module("onecli")
+        onecli_mod = importlib.reload(onecli_mod)
 
         onecli_mod.COMMANDS_DIR = str(fake_commands_dir)
 

@@ -57,7 +57,7 @@ def _reload_settings(monkeypatch, rc_content: str | None, env_vars: dict) -> dic
 
     # 2. Force a full reload of the module so _load_settings() runs again.
     if "common.config" in sys.modules:
-        del sys.modules["common.config"]
+        monkeypatch.delitem(sys.modules, "common.config", raising=False)
 
     import common.config as cfg  # noqa: PLC0415
 

@@ -19,5 +19,12 @@ if [ -f "$HOME/.oneclirc" ]; then
     RC_FLAG="-v $HOME/.oneclirc:/root/.oneclirc:ro"
 fi
 
+if [ "$1" = "dev" ]; then
+    # Run in development mode with current directory mounted
+    # Pass all args except "dev" to the container
+    docker run --rm -v "$(pwd)":/app $RC_FLAG $ENV_FLAGS "$IMAGE_NAME" "${@:2}"
+    exit $?
+fi
+
 # shellcheck disable=SC2086
 docker run --rm $RC_FLAG $ENV_FLAGS "$IMAGE_NAME" "$@"

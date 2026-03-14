@@ -7,6 +7,7 @@ Verifies:
   - Discovered commands are invokable via the CLI runner.
 """
 
+import importlib
 import sys
 import types
 

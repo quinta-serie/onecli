@@ -30,10 +30,18 @@ class DynamicCommandLoader(click.Group):
         return commands
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        module_name = f"commands.{cmd_name}"
         try:
-            module = importlib.import_module(f"commands.{cmd_name}")
-        except ModuleNotFoundError:
-            return None
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError as e:
+            # Only treat the command as unknown if the commands.<cmd_name> module itself
+            # is missing. If the error refers to some other module, surface it so that
+            # broken plugins fail loudly instead of being silently hidden.
+            if e.name == module_name:
+                return None
+            raise click.ClickException(
+                f"Failed to load plugin command '{cmd_name}': missing dependency '{e.name}'."
+            ) from e
         command = getattr(module, "command", None)
         if command is None:
             raise RuntimeError(

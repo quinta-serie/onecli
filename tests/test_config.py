@@ -7,8 +7,6 @@ Verifies:
   - Precedence: env vars beat file values for the same logical key.
 """
 
-import configparser
-import importlib
 import os
 import sys
 

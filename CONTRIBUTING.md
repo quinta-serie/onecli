@@ -34,7 +34,7 @@ Be respectful, constructive, and inclusive. Harassment of any kind will not be t
 ### Fork and clone
 
 ```sh
-git clone https://github.com/<your-username>/onecli.git
+git clone https://github.com/quinta-serie/onecli.git
 cd onecli
 ```
 

@@ -5,7 +5,7 @@
   <p>A dynamic, plugin-based command-line tool — fully containerized so it runs anywhere with zero local Python setup.</p>
 </div>
 
-
+[![CI](https://github.com/quinta-serie/onecli/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/quinta-serie/onecli/actions/workflows/ci.yml)
 
 `onecli` is a framework for building a single, unified CLI tool out of independent command plugins. Each command lives in its own subdirectory under `commands/` and is discovered automatically at runtime — no registration, no hardcoded imports.
 

@@ -7,11 +7,11 @@ Demonstrates:
 """
 
 import os
-
 import click
+from common.config import settings_for_command
 
-from common.config import settings
 
+settings = settings_for_command("hello")
 
 def _resolve_default_name() -> str:
     """Return the default name from settings, falling back to 'World'."""

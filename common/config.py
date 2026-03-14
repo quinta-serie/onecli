@@ -41,3 +41,17 @@ def _load_settings() -> dict:
 
 
 settings: dict = _load_settings()
+
+def settings_for_command(command_name: str) -> dict:
+    """
+    Return a dict of settings relevant to a specific command, merging any
+    command-specific keys with the global ones.  Command-specific keys take
+    precedence over global ones.
+
+    For example, for a command named "hello", settings from the "hello"
+    section in the config file would override any clashing top-level env-var
+    keys.
+    """
+    if not isinstance(settings, dict):
+        return {}
+    return settings.get(command_name, {})

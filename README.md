@@ -33,7 +33,7 @@ Configuration is handled through two sources with a clear precedence model:
 
 | Dependency | Purpose |
 |---|---|
-| [pytest](https://docs.pytest.org/) | Test runner |
+| [pytest](https://docs.pytest.org/) | Test runner (installed in the container image via `requirements.txt`) |
 
 ### Host machine requirements
 
@@ -42,7 +42,9 @@ Configuration is handled through two sources with a clear precedence model:
 | **Docker** | Required to build and run the containerized CLI |
 | `sh`-compatible shell | The `onecli` wrapper is a POSIX shell script |
 
-Install Python dev dependencies with:
+> Note: The Docker image installs all Python dependencies from `requirements.txt`, including `pytest`. While `pytest` is primarily used for development and testing, it is present inside the runtime container as well.
+
+Install Python dev dependencies locally with:
 
 ```sh
 pip install -r requirements.txt

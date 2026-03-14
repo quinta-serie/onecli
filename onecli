@@ -1,0 +1,23 @@
+#!/bin/sh
+
+IMAGE_NAME="onecli-app"
+
+if [ "$1" = "build" ]; then
+    docker build -t "$IMAGE_NAME" .
+    exit $?
+fi
+
+# Collect all ONECLI_* environment variables as -e flags
+ENV_FLAGS=""
+for var in $(env | grep '^ONECLI_' | cut -d= -f1); do
+    ENV_FLAGS="$ENV_FLAGS -e $var=$(printenv "$var")"
+done
+
+# Mount ~/.oneclirc if it exists
+RC_FLAG=""
+if [ -f "$HOME/.oneclirc" ]; then
+    RC_FLAG="-v $HOME/.oneclirc:/root/.oneclirc:ro"
+fi
+
+# shellcheck disable=SC2086
+docker run --rm $RC_FLAG $ENV_FLAGS "$IMAGE_NAME" "$@"

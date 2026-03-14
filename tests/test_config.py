@@ -44,6 +44,13 @@ def _reload_settings(monkeypatch, rc_content: str | None, env_vars: dict) -> dic
         tmp.close()
         monkeypatch.setenv("ONECLI_RC_PATH", tmp.name)
         clean_env["ONECLI_RC_PATH"] = tmp.name
+
+        # Ensure the temporary RC file is removed after the test finishes.
+        def _cleanup_tmp_rc(path=tmp.name):
+            if os.path.exists(path):
+                os.unlink(path)
+
+        monkeypatch.addfinalizer(_cleanup_tmp_rc)
     else:
         monkeypatch.setenv("ONECLI_RC_PATH", "/nonexistent/path/.oneclirc")
         clean_env["ONECLI_RC_PATH"] = "/nonexistent/path/.oneclirc"

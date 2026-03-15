@@ -27,5 +27,11 @@ if [ "$1" = "dev" ]; then
     exit $?
 fi
 
+if [ "$1" = "shell" ]; then
+    # Run an interactive shell in the container, replace entrypoint with sh
+    docker run --rm -it $RC_FLAG $ENV_FLAGS --entrypoint sh "$IMAGE_NAME"
+    exit $?
+fi
+
 # shellcheck disable=SC2086
 docker run --rm $RC_FLAG $ENV_FLAGS "$IMAGE_NAME" "$@"

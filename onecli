@@ -1,6 +1,8 @@
 #!/bin/sh
 
 IMAGE_NAME="onecli-app"
+CACHE_DIR="$(dirname "$0")/.cache"
+CACHE_VOLUME="-v $CACHE_DIR:/app/.cache"
 
 if [ "$1" = "build" ]; then
     docker build -t "$IMAGE_NAME" .
@@ -23,15 +25,15 @@ if [ "$1" = "dev" ]; then
     # Run in development mode with current directory mounted
     # Pass all args except "dev" to the container
     HOST_INSTALL_DIR=$(dirname "$0")
-    docker run --rm -v "$HOST_INSTALL_DIR":/app $RC_FLAG $ENV_FLAGS "$IMAGE_NAME" "${@:2}"
+    docker run --rm -v "$HOST_INSTALL_DIR":/app $RC_FLAG $ENV_FLAGS $CACHE_VOLUME "$IMAGE_NAME" "${@:2}"
     exit $?
 fi
 
 if [ "$1" = "shell" ]; then
     # Run an interactive shell in the container, replace entrypoint with sh
-    docker run --rm -it $RC_FLAG $ENV_FLAGS --entrypoint sh "$IMAGE_NAME"
+    docker run --rm -it $RC_FLAG $ENV_FLAGS $CACHE_VOLUME --entrypoint sh "$IMAGE_NAME"
     exit $?
 fi
 
 # shellcheck disable=SC2086
-docker run --rm $RC_FLAG $ENV_FLAGS "$IMAGE_NAME" "$@"
+docker run --rm $RC_FLAG $ENV_FLAGS $CACHE_VOLUME "$IMAGE_NAME" "$@"

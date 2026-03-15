@@ -97,6 +97,15 @@ pip install -r requirements.txt
 | `common/config.py` | Merges `.oneclirc` file and `ONECLI_*` env vars into `settings` |
 | `commands/<name>/__init__.py` | Self-contained command plugin |
 
+### Wrapper script subcommands
+
+| Subcommand | Description |
+|---|---|
+| `build` | Builds the Docker image (`docker build -t onecli-app .`) |
+| `dev <cmd>` | Mounts the local project directory into the container — code changes take effect without rebuilding |
+| `shell` | Opens an interactive `sh` session inside the container for debugging |
+| *(any other)* | Runs the specified command inside the container normally |
+
 ### Configuration precedence
 
 `common/config.py` runs at startup and builds a single `settings` dict:
@@ -197,13 +206,45 @@ ONECLI_SECRET_TOKEN=my-secret ./onecli hello
 # Secret token found — authenticated mode active.
 ```
 
-### 3. List available commands
+### 3. Develop without rebuilding (`dev` mode)
+
+During active development, use the `dev` subcommand to mount your local source directory directly into the running container. This means code changes are reflected immediately — no `docker build` needed between iterations.
+
+```sh
+./onecli dev <command> [OPTIONS]
+```
+
+Example:
+
+```sh
+./onecli dev hello --name Alice
+```
+
+Under the hood this runs:
+
+```sh
+docker run --rm -v <project-dir>:/app onecli-app hello --name Alice
+```
+
+> **Note:** you still need to run `./onecli build` at least once before using `dev` mode, and again whenever `requirements.txt` or the `Dockerfile` changes.
+
+### 4. Open an interactive shell in the container (`shell` mode)
+
+Use the `shell` subcommand to drop into an interactive `sh` session inside the container. Useful for debugging, inspecting the filesystem, or running one-off Python commands.
+
+```sh
+./onecli shell
+```
+
+The container starts with the same `~/.oneclirc` mount and `ONECLI_*` env vars as a normal run, but the entrypoint is replaced with `sh` and the session is interactive (`-it`).
+
+### 5. List available commands
 
 ```sh
 ./onecli --help
 ```
 
-### 4. Get help for a specific command
+### 6. Get help for a specific command
 
 ```sh
 ./onecli hello --help
@@ -267,12 +308,6 @@ python -m pytest tests/test_discovery.py -v
 |---|---|
 | `tests/test_config.py` | INI file parsing, env var loading, precedence rules |
 | `tests/test_discovery.py` | Directory scanning, `__init__.py` detection, `get_command`, CLI runner |
-
-### Expected output
-
-```
-15 passed in 0.12s
-```
 
 ---
 

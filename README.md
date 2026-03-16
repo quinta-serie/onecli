@@ -166,6 +166,15 @@ Adding a new command requires only **one new directory and one Python file**.
 
 ---
 
+## Available Commands
+
+| Command | Description | Documentation |
+|---|---|---|
+| `hello` | Example greeting command — demonstrates config and env var integration | built-in |
+| `senior-stock` | Fetches and displays stock data from the Senior stock API | [commands/senior-stock/README.md](commands/senior-stock/README.md) |
+
+---
+
 ## How to Use
 
 ### 1. Build the Docker image

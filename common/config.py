@@ -21,8 +21,9 @@ import os
 RC_FILE_PATH = os.environ.get("ONECLI_RC_PATH", "/root/.oneclirc")
 
 
-def _load_settings() -> dict:
+def _load_settings() -> tuple[dict, dict]:
     config: dict = {}
+    config_from_env: dict = {}
 
     # --- Layer 1: .oneclirc file (lowest precedence) ---
     parser = configparser.ConfigParser()
@@ -35,12 +36,13 @@ def _load_settings() -> dict:
     for key, value in os.environ.items():
         if key.startswith("ONECLI_") and key != "ONECLI_RC_PATH":
             derived_key = key[len("ONECLI_"):].lower()
+            config_from_env[derived_key] = value
             config[derived_key] = value
 
-    return config
+    return config, config_from_env
 
 
-settings: dict = _load_settings()
+settings, settings_from_env = _load_settings()
 
 def settings_for_command(command_name: str) -> dict:
     """
@@ -54,4 +56,5 @@ def settings_for_command(command_name: str) -> dict:
     """
     if not isinstance(settings, dict):
         return {}
-    return settings.get(command_name, {})
+    result = settings.get(command_name, {})
+    return {**result, **settings_from_env}

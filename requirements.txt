@@ -1,2 +1,4 @@
+beautifultable
 click
 pytest
+requests

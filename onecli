@@ -25,7 +25,8 @@ if [ "$1" = "dev" ]; then
     # Run in development mode with current directory mounted
     # Pass all args except "dev" to the container
     HOST_INSTALL_DIR=$(dirname "$0")
-    docker run --rm -v "$HOST_INSTALL_DIR":/app $RC_FLAG $ENV_FLAGS $CACHE_VOLUME "$IMAGE_NAME" "${@:2}"
+    DEBUG_MODE_FLAG="-e ONECLI_DEBUG=1"
+    docker run --rm -v "$HOST_INSTALL_DIR":/app $RC_FLAG $ENV_FLAGS $CACHE_VOLUME $DEBUG_MODE_FLAG "$IMAGE_NAME" "${@:2}"
     exit $?
 fi
 

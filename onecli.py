@@ -56,4 +56,9 @@ def cli() -> None:
 
 
 if __name__ == "__main__":
-    cli()
+    try:
+        cli()
+    except Exception as e:
+        if os.getenv("ONECLI_DEBUG") in ("1", "true", "True"):
+            raise
+        click.echo(f"Error: {e}", err=True)

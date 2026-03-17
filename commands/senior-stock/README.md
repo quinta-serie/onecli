@@ -18,6 +18,9 @@ tp_consulta=SaldoProdutosEnderecosFaturaveis
 id_produto_sem_estoque=S
 usuario=*****
 senha=*****
+# Optional cache TTL settings (in seconds)
+cache_token_ttl_seconds=3600
+cache_data_ttl_seconds=300
 ```
 
 | Key | Description |
@@ -30,6 +33,8 @@ senha=*****
 | `id_produto_sem_estoque` | Whether to include out-of-stock products (`S` = yes, `N` = no) |
 | `usuario` | API username |
 | `senha` | API password |
+| `cache_token_ttl_seconds` | (Optional) Time-to-live for the authentication token cache, in seconds (default: 3600) |
+| `cache_data_ttl_seconds` | (Optional) Time-to-live for the stock data cache, in seconds (default: 300) |
 
 ### Overriding settings with environment variables
 
@@ -44,6 +49,8 @@ export ONECLI_TP_CONSULTA=SaldoProdutosEnderecosFaturaveis
 export ONECLI_ID_PRODUTO_SEM_ESTOQUE=N
 export ONECLI_USUARIO=myuser
 export ONECLI_SENHA=mypassword
+export ONECLI_CACHE_TOKEN_TTL_SECONDS=3600
+export ONECLI_CACHE_DATA_TTL_SECONDS=300
 ```
 
 Environment variables take **higher precedence** than the `~/.oneclirc` file, making them suitable for CI pipelines and secrets management.

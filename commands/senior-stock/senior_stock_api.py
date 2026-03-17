@@ -22,6 +22,8 @@ class SeniorStockAPI:
         self.usuario = settings.get("usuario")
         self.senha = settings.get("senha")
         self.cache = cache
+        self.cache_token_ttl_seconds = int(settings.get("cache_token_ttl_seconds", CACHE_TOKEN_TTL_SECONDS))
+        self.cache_data_ttl_seconds = int(settings.get("cache_data_ttl_seconds", CACHE_DATA_TTL_SECONDS))
 
     def authenticate(self, force_refresh: bool = False) -> str:
         """Authenticate with the senior stock API and cache the token."""
@@ -37,7 +39,7 @@ class SeniorStockAPI:
         response.raise_for_status()
         token = response.text
 
-        self.cache.set(CACHE_KEY_TOKEN, token, ttl=CACHE_TOKEN_TTL_SECONDS)
+        self.cache.set(CACHE_KEY_TOKEN, token, ttl=self.cache_token_ttl_seconds)
         return token
 
     def get_all_stock(self, no_cache: bool = False, attempts: int = 1) -> dict:
@@ -64,7 +66,7 @@ class SeniorStockAPI:
 
             result = response.json()
 
-            self.cache.set(CACHE_KEY_DATA, result, ttl=CACHE_DATA_TTL_SECONDS)
+            self.cache.set(CACHE_KEY_DATA, result, ttl=self.cache_data_ttl_seconds)
 
             return result
         except requests.HTTPError as e:

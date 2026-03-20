@@ -29,7 +29,8 @@ DEFAULT_ALL_COLUMNS = [
 @click.option("--columns", help="Comma-separated list of columns to display, e.g. 'cd_produto,ean,qt_disponivel'")
 @click.option("--no-cache", "no_cache_flag", is_flag=True, help="Bypass cache and fetch fresh data from the API")
 @click.option("--all-columns", "all_columns_flag", is_flag=True, help="Display all available columns")
-def command(filter_expr, columns, no_cache_flag, all_columns_flag):
+@click.option("--quiet", "quiet_flag", is_flag=True, help="Only display the table without additional info")
+def command(filter_expr, columns, no_cache_flag, all_columns_flag, quiet_flag):
     """Show the stock returned by the senior stock API."""
     settings = settings_for_command("senior_stock")
     cache = Cache("senior_stock")
@@ -62,6 +63,10 @@ def command(filter_expr, columns, no_cache_flag, all_columns_flag):
                 table.rows.append(row)
 
     click.echo(table)
+    if not quiet_flag:
+        total_items = len(stock_data)
+        total_matching_items = len(table.rows)
+        click.echo(f"\nTotal items: {total_items}, Matching items: {total_matching_items}\n")
 
 
 def parse_filters(filter_expr):
@@ -89,4 +94,3 @@ def parse_columns(columns, all_columns_flag):
     if all_columns_flag:
         columns_list = DEFAULT_ALL_COLUMNS
     return columns_list
-

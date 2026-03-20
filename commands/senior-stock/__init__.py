@@ -40,7 +40,7 @@ def command(filter_expr, columns, no_cache_flag, all_columns_flag):
     columns_list = parse_columns(columns, all_columns_flag)
     filters = parse_filters(filter_expr)
 
-    table = beautifultable.BeautifulTable()
+    table = beautifultable.BeautifulTable(maxwidth=1600)
     table.columns.header = columns_list
 
     for item in stock_data:

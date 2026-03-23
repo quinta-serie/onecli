@@ -132,43 +132,54 @@ _cmd = _load_cmd_module()
 
 
 # ---------------------------------------------------------------------------
-# parse_filters
+# filter expressions (delegated to FilterEngine — parse_filters removed)
 # ---------------------------------------------------------------------------
 
-class TestParseFilters:
-    def test_empty_input_returns_empty_dict(self):
-        assert _cmd.parse_filters(()) == {}
+class TestFilterExpressions:
+    """Verify filter expressions are correctly passed through to FilterEngine."""
 
-    def test_exact_match_filter(self):
-        result = _cmd.parse_filters(("ean:1111111111111",))
-        assert result == {"ean": {"type": "exact", "value": "1111111111111"}}
+    def test_no_filter_returns_all_rows(self):
+        result, _ = _invoke()
+        assert "P001" in result.output
+        assert "P002" in result.output
 
-    def test_exact_match_strips_whitespace(self):
-        result = _cmd.parse_filters(("ean: 123 ",))
-        assert result["ean"]["value"] == "123"
+    def test_eq_filter_keeps_matching_row(self):
+        result, _ = _invoke(["--filter", "ean[eq]1111111111111"])
+        assert "P001" in result.output
+        assert "P002" not in result.output
 
-    def test_regex_match_filter(self):
-        result = _cmd.parse_filters(("ean[re]111",))
-        f = result["ean"]
-        assert f["type"] == "regex"
-        assert isinstance(f["value"], re.Pattern)
-        assert f["value"].pattern == "111"
+    def test_eq_filter_no_match_returns_empty_table(self):
+        result, _ = _invoke(["--filter", "ean[eq]9999999999999"])
+        assert "P001" not in result.output
+        assert "P002" not in result.output
 
-    def test_multiple_filters(self):
-        result = _cmd.parse_filters(("ean:111", "cd_produto:P001"))
-        assert "ean" in result
-        assert "cd_produto" in result
+    def test_re_filter_keeps_matching_row(self):
+        result, _ = _invoke(["--filter", "ean[re]^111"])
+        assert "P001" in result.output
+        assert "P002" not in result.output
 
-    def test_malformed_expr_without_separator_is_ignored(self):
-        assert _cmd.parse_filters(("no_separator",)) == {}
+    def test_ne_filter_excludes_row(self):
+        result, _ = _invoke(["--filter", "ean[ne]1111111111111"])
+        assert "P002" in result.output
+        assert "P001" not in result.output
 
-    def test_colon_in_value_is_preserved(self):
-        result = _cmd.parse_filters(("key:val:ue",))
-        assert result["key"]["value"] == "val:ue"
+    def test_contains_filter(self):
+        result, _ = _invoke(["--filter", "ds_produto[contains]One",
+                              "--columns", "cd_produto,ds_produto"])
+        assert "P001" in result.output
+        assert "P002" not in result.output
 
-    def test_regex_key_is_stripped(self):
-        result = _cmd.parse_filters((" ean [re]111",))
-        assert "ean" in result
+    def test_unknown_separator_produces_no_filtering(self):
+        # Unrecognized separator → FilterEngine ignores it → all rows shown
+        result, _ = _invoke(["--filter", "ean~1111111111111"])
+        assert "P001" in result.output
+        assert "P002" in result.output
+
+    def test_multiple_filter_flags_applied(self):
+        result, _ = _invoke(["--filter", "ean[eq]1111111111111",
+                              "--filter", "cd_produto[eq]P001"])
+        assert "P001" in result.output
+        assert "P002" not in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -237,13 +248,13 @@ class TestCommand:
         mock_api.get_all_stock.assert_called_once_with(no_cache=False)
 
     def test_exact_filter_keeps_matching_rows(self):
-        result, _ = _invoke(["--filter", "ean:1111111111111"])
+        result, _ = _invoke(["--filter", "ean[eq]1111111111111"])
         assert result.exit_code == 0, result.output
         assert "P001" in result.output
         assert "P002" not in result.output
 
     def test_exact_filter_drops_non_matching_rows(self):
-        result, _ = _invoke(["--filter", "ean:9999999999999"])
+        result, _ = _invoke(["--filter", "ean[eq]9999999999999"])
         assert "P001" not in result.output
         assert "P002" not in result.output
 
@@ -255,8 +266,8 @@ class TestCommand:
 
     def test_multiple_filters_are_cumulative(self):
         result, _ = _invoke([
-            "--filter", "ean:1111111111111",
-            "--filter", "cd_produto:P001",
+            "--filter", "ean[eq]1111111111111",
+            "--filter", "cd_produto[eq]P001",
         ])
         assert "P001" in result.output
         assert "P002" not in result.output
@@ -276,7 +287,7 @@ class TestCommand:
         assert "A2" in result.output
 
     def test_no_matching_rows_produces_no_row_data(self):
-        result, _ = _invoke(["--filter", "ean:000"])
+        result, _ = _invoke(["--filter", "ean[eq]000"])
         assert result.exit_code == 0
         assert "P001" not in result.output
         assert "P002" not in result.output

@@ -87,7 +87,7 @@ Displays the full set of columns:
 ### Filter by exact value
 
 ```sh
-./onecli senior-stock --filter ean:7891234567890
+./onecli senior-stock --filter ean[eq]7891234567890
 ```
 
 ### Filter by regular expression
@@ -101,7 +101,7 @@ Displays the full set of columns:
 Multiple `--filter` flags are applied as an AND condition — only rows matching all filters are shown:
 
 ```sh
-./onecli senior-stock --filter cd_empresa:1081 --filter "ds_produto[re]Tênis"
+./onecli senior-stock --filter cd_empresa[eq]1081 --filter "ds_produto[re]Tênis"
 ```
 
 ### Bypass the cache

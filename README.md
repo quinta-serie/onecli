@@ -172,6 +172,7 @@ Adding a new command requires only **one new directory and one Python file**.
 |---|---|---|
 | `hello` | Example greeting command — demonstrates config and env var integration | built-in |
 | `senior-stock` | Fetches and displays stock data from the Senior stock API | [senior-stock](commands/senior-stock/README.md) |
+| `tesseract` | Fetches and displays product variation data from the Tesseract API | [tesseract](commands/tesseract/README.md) |
 
 ---
 

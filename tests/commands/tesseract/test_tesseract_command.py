@@ -7,7 +7,10 @@ Covers:
                     --quiet flag, 404 HTTPError handled, other HTTPError re-raised,
                     empty modelVariations, missing modelVariations key,
                     multiple variations, block reasons joined, totals output,
-                    BU and MODEL arguments
+                    BU and MODEL arguments, dynamic column header
+  - data_mapping_by_bu — dispatch and unsupported BU
+  - _map_data_for_fisia — field extraction, blocked string, block reasons join
+  - _map_data_for_centauro — field extraction from model_colors structure
 """
 
 import sys
@@ -333,3 +336,231 @@ class TestCommand:
         result, _ = _invoke(fetch_data_return={"modelVariations": [{"products": [product]}]})
         assert result.exit_code == 0
         assert "NOSTOCK" in result.output
+
+    # -----------------------------------------------------------------------
+    # Dynamic column header
+    # -----------------------------------------------------------------------
+
+    def test_fisia_uses_external_id_column_header(self):
+        result, _ = _invoke(["fisia", "MODEL"])
+        assert "EXTERNAL_ID" in result.output
+        assert "EAN" not in result.output
+
+    def test_centauro_uses_ean_column_header(self):
+        runner = CliRunner()
+        mock_api_cls = MagicMock()
+        mock_api_cls.return_value.fetch_data.return_value = _CENTAURO_DATA
+        with patch.object(_cmd, "TesseractAPI", mock_api_cls), \
+             patch("common.config.settings_for_command", return_value=_MOCK_SETTINGS):
+            result = runner.invoke(_cmd.command, ["centauro", "MODEL"])
+        assert "EAN" in result.output
+        assert "EXTERNAL_ID" not in result.output
+
+
+# ---------------------------------------------------------------------------
+# Centauro data format integration
+# ---------------------------------------------------------------------------
+
+_CENTAURO_DATA = {
+    "model_colors": {
+        "color_red": {
+            "variants": [
+                {
+                    "sku": "C001",
+                    "ean": "9999999999001",
+                    "blocked": False,
+                    "stock": {"available": 5, "total": 10},
+                    "block_reason": [],
+                },
+                {
+                    "sku": "C002",
+                    "ean": "9999999999002",
+                    "blocked": True,
+                    "stock": {"available": 0, "total": 3},
+                    "block_reason": ["size_unavailable"],
+                },
+            ]
+        }
+    }
+}
+
+
+def _invoke_centauro(args_extra=None, fetch_data_return=None):
+    runner = CliRunner()
+    data = fetch_data_return if fetch_data_return is not None else _CENTAURO_DATA
+    mock_api_cls = MagicMock()
+    mock_api_cls.return_value.fetch_data.return_value = data
+    with patch.object(_cmd, "TesseractAPI", mock_api_cls), \
+         patch("common.config.settings_for_command", return_value=_MOCK_SETTINGS):
+        result = runner.invoke(_cmd.command, ["centauro", "MODEL123"] + (args_extra or []))
+    return result
+
+
+class TestCentauro:
+    def test_centauro_exits_with_code_zero(self):
+        result = _invoke_centauro()
+        assert result.exit_code == 0, result.output
+
+    def test_centauro_sku_appears_in_output(self):
+        result = _invoke_centauro()
+        assert "C001" in result.output
+        assert "C002" in result.output
+
+    def test_centauro_ean_appears_in_output(self):
+        result = _invoke_centauro()
+        assert "9999999999001" in result.output
+
+    def test_centauro_block_reason_joined(self):
+        result = _invoke_centauro()
+        assert "size_unavailable" in result.output
+
+    def test_centauro_show_only_blocked(self):
+        result = _invoke_centauro(["--show-only", "blocked"])
+        assert "C002" in result.output
+        assert "C001" not in result.output
+
+    def test_centauro_show_only_unblocked(self):
+        result = _invoke_centauro(["--show-only", "unblocked"])
+        assert "C001" in result.output
+        assert "C002" not in result.output
+
+    def test_centauro_totals(self):
+        result = _invoke_centauro()
+        assert "Total items: 2" in result.output
+        assert "Matching items: 2" in result.output
+
+    def test_centauro_totals_with_filter(self):
+        result = _invoke_centauro(["--show-only", "blocked"])
+        assert "Total items: 2" in result.output
+        assert "Matching items: 1" in result.output
+
+    def test_centauro_empty_model_colors_exits_cleanly(self):
+        result = _invoke_centauro(fetch_data_return={"model_colors": {}})
+        assert result.exit_code == 0
+
+    def test_centauro_missing_model_colors_key_exits_cleanly(self):
+        result = _invoke_centauro(fetch_data_return={})
+        assert result.exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# data_mapping_by_bu / _map_data_for_fisia / _map_data_for_centauro
+# ---------------------------------------------------------------------------
+
+class TestDataMappingByBu:
+    def test_dispatches_to_fisia(self):
+        data = {"modelVariations": [{"products": [_PRODUCT_UNBLOCKED]}]}
+        result = _cmd.data_mapping_by_bu(data, "fisia")
+        assert len(result) == 1
+        assert result[0]["sku"] == "SKU001"
+
+    def test_dispatches_to_centauro(self):
+        result = _cmd.data_mapping_by_bu(_CENTAURO_DATA, "centauro")
+        assert len(result) == 2
+        assert result[0]["sku"] == "C001"
+
+    def test_unsupported_bu_raises(self):
+        with pytest.raises(ValueError, match="Unsupported business unit"):
+            _cmd.data_mapping_by_bu({}, "unknown")
+
+
+class TestMapDataForFisia:
+    def test_extracts_sku(self):
+        data = {"modelVariations": [{"products": [_PRODUCT_UNBLOCKED]}]}
+        result = _cmd._map_data_for_fisia(data)
+        assert result[0]["sku"] == "SKU001"
+
+    def test_extracts_external_id(self):
+        data = {"modelVariations": [{"products": [_PRODUCT_UNBLOCKED]}]}
+        result = _cmd._map_data_for_fisia(data)
+        assert result[0]["externalId"] == "EXT001"
+
+    def test_blocked_stored_as_string(self):
+        data = {"modelVariations": [{"products": [_PRODUCT_UNBLOCKED, _PRODUCT_BLOCKED]}]}
+        result = _cmd._map_data_for_fisia(data)
+        assert result[0]["blocked"] == "False"
+        assert result[1]["blocked"] == "True"
+
+    def test_extracts_stock_available(self):
+        data = {"modelVariations": [{"products": [_PRODUCT_UNBLOCKED]}]}
+        result = _cmd._map_data_for_fisia(data)
+        assert result[0]["available"] == 10
+
+    def test_extracts_stock_total(self):
+        data = {"modelVariations": [{"products": [_PRODUCT_UNBLOCKED]}]}
+        result = _cmd._map_data_for_fisia(data)
+        assert result[0]["total"] == 15
+
+    def test_block_reasons_joined(self):
+        data = {"modelVariations": [{"products": [_PRODUCT_BLOCKED]}]}
+        result = _cmd._map_data_for_fisia(data)
+        assert result[0]["blockReasons"] == "reason_a, reason_b"
+
+    def test_empty_block_reasons_returns_empty_string(self):
+        data = {"modelVariations": [{"products": [_PRODUCT_UNBLOCKED]}]}
+        result = _cmd._map_data_for_fisia(data)
+        assert result[0]["blockReasons"] == ""
+
+    def test_multiple_variations_flattened(self):
+        data = {
+            "modelVariations": [
+                {"products": [_PRODUCT_UNBLOCKED]},
+                {"products": [_PRODUCT_BLOCKED]},
+            ]
+        }
+        result = _cmd._map_data_for_fisia(data)
+        assert len(result) == 2
+
+    def test_missing_stock_key_defaults_to_zero(self):
+        product = {"sku": "X", "externalId": "Y", "blocked": False, "blockReasons": []}
+        data = {"modelVariations": [{"products": [product]}]}
+        result = _cmd._map_data_for_fisia(data)
+        assert result[0]["available"] == 0
+        assert result[0]["total"] == 0
+
+
+class TestMapDataForCentauro:
+    def test_extracts_sku(self):
+        result = _cmd._map_data_for_centauro(_CENTAURO_DATA)
+        skus = [r["sku"] for r in result]
+        assert "C001" in skus
+        assert "C002" in skus
+
+    def test_extracts_ean_as_external_id(self):
+        result = _cmd._map_data_for_centauro(_CENTAURO_DATA)
+        assert result[0]["externalId"] == "9999999999001"
+
+    def test_blocked_stored_as_string(self):
+        result = _cmd._map_data_for_centauro(_CENTAURO_DATA)
+        assert result[0]["blocked"] == "False"
+        assert result[1]["blocked"] == "True"
+
+    def test_extracts_stock_available(self):
+        result = _cmd._map_data_for_centauro(_CENTAURO_DATA)
+        assert result[0]["available"] == 5
+
+    def test_extracts_stock_total(self):
+        result = _cmd._map_data_for_centauro(_CENTAURO_DATA)
+        assert result[0]["total"] == 10
+
+    def test_block_reason_joined(self):
+        result = _cmd._map_data_for_centauro(_CENTAURO_DATA)
+        assert result[1]["blockReasons"] == "size_unavailable"
+
+    def test_empty_model_colors_returns_empty_list(self):
+        result = _cmd._map_data_for_centauro({"model_colors": {}})
+        assert result == []
+
+    def test_missing_model_colors_key_returns_empty_list(self):
+        result = _cmd._map_data_for_centauro({})
+        assert result == []
+
+    def test_multiple_colors_all_variants_flattened(self):
+        data = {
+            "model_colors": {
+                "red": {"variants": [{"sku": "R1", "ean": "E1", "blocked": False, "stock": {"available": 1, "total": 2}, "block_reason": []}]},
+                "blue": {"variants": [{"sku": "B1", "ean": "E2", "blocked": False, "stock": {"available": 3, "total": 4}, "block_reason": []}]},
+            }
+        }
+        result = _cmd._map_data_for_centauro(data)
+        assert len(result) == 2

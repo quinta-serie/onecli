@@ -102,6 +102,7 @@ pip install -r requirements.txt
 | Subcommand | Description |
 |---|---|
 | `build` | Builds the Docker image (`docker build -t onecli-app .`) |
+| `update` | Pulls the latest changes from `main` (`git pull origin main`) and rebuilds the Docker image |
 | `dev <cmd>` | Mounts the local project directory into the container — code changes take effect without rebuilding |
 | `shell` | Opens an interactive `sh` session inside the container for debugging |
 | *(any other)* | Runs the specified command inside the container normally |
@@ -186,7 +187,21 @@ Adding a new command requires only **one new directory and one Python file**.
 
 This runs `docker build -t onecli-app .` under the hood.
 
-### 2. Run a command
+### 2. Keep onecli up to date (`update`)
+
+```sh
+./onecli update
+```
+
+Pulls the latest changes from the `main` branch and rebuilds the Docker image in one step — equivalent to running:
+
+```sh
+git pull origin main && ./onecli build
+```
+
+Use this whenever a new version is released to stay current without having to run the two commands separately.
+
+### 3. Run a command
 
 ```sh
 ./onecli <command> [OPTIONS]
@@ -216,7 +231,7 @@ ONECLI_SECRET_TOKEN=my-secret ./onecli hello
 # Secret token found — authenticated mode active.
 ```
 
-### 3. Develop without rebuilding (`dev` mode)
+### 4. Develop without rebuilding (`dev` mode)
 
 During active development, use the `dev` subcommand to mount your local source directory directly into the running container. This means code changes are reflected immediately — no `docker build` needed between iterations.
 
@@ -238,7 +253,7 @@ docker run --rm -v <project-dir>:/app onecli-app hello --name Alice
 
 > **Note:** you still need to run `./onecli build` at least once before using `dev` mode, and again whenever `requirements.txt` or the `Dockerfile` changes.
 
-### 4. Open an interactive shell in the container (`shell` mode)
+### 5. Open an interactive shell in the container (`shell` mode)
 
 Use the `shell` subcommand to drop into an interactive `sh` session inside the container. Useful for debugging, inspecting the filesystem, or running one-off Python commands.
 
@@ -248,13 +263,13 @@ Use the `shell` subcommand to drop into an interactive `sh` session inside the c
 
 The container starts with the same `~/.oneclirc` mount and `ONECLI_*` env vars as a normal run, but the entrypoint is replaced with `sh` and the session is interactive (`-it`).
 
-### 5. List available commands
+### 6. List available commands
 
 ```sh
 ./onecli --help
 ```
 
-### 6. Get help for a specific command
+### 7. Get help for a specific command
 
 ```sh
 ./onecli hello --help

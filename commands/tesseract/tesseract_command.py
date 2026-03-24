@@ -22,32 +22,73 @@ def command(bu, model, filter, quiet):
         else:
             raise
 
+    identifier = "EXTERNAL_ID" if bu == "fisia" else "EAN"
     table = beautifultable.BeautifulTable(maxwidth=1600)
-    table.columns.header = ["SKU", "EXTERNAL_ID", "BLOCKED", "AVAILABLE", "TOTAL", "BLOCK_REASONS"]
+    table.columns.header = ["SKU", identifier, "BLOCKED", "AVAILABLE", "TOTAL", "BLOCK_REASONS"]
 
     total_items = 0
     total_matching_items = 0
 
-    for variation in data.get("modelVariations", []):
-        for product in variation.get("products", []):
-            total_items += 1
+    mapped_data = data_mapping_by_bu(data, bu)
 
-            if filter == "blocked" and not product.get("blocked", False):
-                continue
-            if filter == "unblocked" and product.get("blocked", False):
-                continue
+    for item in mapped_data:
+        total_items += 1
+        blocked = item.get("blocked", "") == "True"
+        if filter == "blocked" and not blocked:
+            continue
+        if filter == "unblocked" and blocked:
+            continue
 
-            total_matching_items += 1
+        total_matching_items += 1
 
-            table.rows.append([
-                product.get("sku", ""),
-                product.get("externalId", ""),
-                str(product.get("blocked", "")),
-                str(product.get("stock", {}).get("available", "")),
-                str(product.get("stock", {}).get("total", "")),
-                ", ".join(product.get("blockReasons", []))
-            ])
+        table.rows.append([
+            item.get("sku", ""),
+            item.get("externalId", ""),
+            item.get("blocked", ""),
+            item.get("available", ""),
+            item.get("total", ""),
+            item.get("blockReasons", [])
+        ])
     click.echo(table)
 
     if not quiet:
         click.echo(f"\nTotal items: {total_items}, Matching items: {total_matching_items}\n")
+
+def data_mapping_by_bu(data, bu):
+    if bu == "fisia":
+        return _map_data_for_fisia(data)
+    elif bu == "centauro":
+        return _map_data_for_centauro(data)
+    else:
+        raise ValueError(f"Unsupported business unit: {bu}")
+
+def _map_data_for_fisia(data):
+    mapping = []
+    for variation in data.get("modelVariations", []):
+        for product in variation.get("products", []):
+            mapping.append({
+                "sku": product.get("sku", ""),
+                "externalId": product.get("externalId", ""),
+                "blocked": str(product.get("blocked", False)),
+                "available": product.get("stock", {}).get("available", 0),
+                "total": product.get("stock", {}).get("total", 0),
+                "blockReasons": ", ".join(product.get("blockReasons", []))
+            })
+    return mapping
+
+def _map_data_for_centauro(data):
+    mapping = []
+
+    model_colors = data.get("model_colors", {})
+    keys = model_colors.keys()
+    for key in keys:
+        for variants in model_colors[key].get("variants", []):
+            mapping.append({
+                "sku": variants.get("sku", ""),
+                "externalId": variants.get("ean", ""),
+                "blocked": str(variants.get("blocked", False)),
+                "available": variants.get("stock", {}).get("available", 0),
+                "total": variants.get("stock", {}).get("total", 0),
+                "blockReasons": ", ".join(variants.get("block_reason", []))
+            })
+    return mapping

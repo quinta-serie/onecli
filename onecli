@@ -9,6 +9,12 @@ if [ "$1" = "build" ]; then
     exit $?
 fi
 
+if [ "$1" = "update" ]; then
+    git pull origin main
+    ./onecli build
+    exit $?
+fi
+
 # Collect all ONECLI_* environment variables as -e flags
 ENV_FLAGS=""
 for var in $(env | grep '^ONECLI_' | cut -d= -f1); do

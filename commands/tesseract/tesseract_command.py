@@ -33,9 +33,10 @@ def command(bu, model, filter, quiet):
 
     for item in mapped_data:
         total_items += 1
-        if filter == "blocked" and not item.get("blocked", False):
+        blocked = item.get("blocked", "") == "True"
+        if filter == "blocked" and not blocked:
             continue
-        if filter == "unblocked" and item.get("blocked", False):
+        if filter == "unblocked" and blocked:
             continue
 
         total_matching_items += 1

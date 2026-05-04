@@ -83,7 +83,7 @@ def command(filter_expr, columns, no_cache_flag, all_columns_flag, quiet_flag):
     columns_list = parse_columns(columns, all_columns_flag)
     filter_engine = FilterEngine(stock_data, filter_expr, columns_list)
 
-    table = beautifultable.BeautifulTable(maxwidth=1600)
+    table = beautifultable.BeautifulTable(maxwidth=1600, detect_numerics=False)
     table.columns.header = columns_list
 
     for row in filter_engine.apply_filters():
